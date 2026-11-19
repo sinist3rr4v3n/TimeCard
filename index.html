@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2f5d50">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Time Card">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Time Card Calculator</title>
+<style>
+  :root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1f;--mute:#6b6b70;--line:#e3e1dc;--acc:#2f5d50;--st:#2f5d50;--ot:#b7791f;--dt:#b4443a}
+  @media (prefers-color-scheme:dark){:root{--bg:#161616;--card:#202020;--ink:#eee;--mute:#9a9a9f;--line:#333;--acc:#7cc4ad;--st:#7cc4ad;--ot:#e3b25a;--dt:#e9786c}}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  main{max-width:640px;margin:0 auto;padding:16px 14px 60px}
+  h1{font-size:22px;margin:4px 0 2px}
+  .sub{color:var(--mute);font-size:13px;margin:0 0 14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+  label{display:block;font-size:12px;color:var(--mute);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+  input{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .row3{grid-template-columns:1.3fr 1fr 1fr}
+  button{font:inherit;border:0;border-radius:10px;padding:12px 14px;cursor:pointer}
+  .primary{background:var(--acc);color:#fff;width:100%;font-weight:600}
+  @media (prefers-color-scheme:dark){.primary{color:#111}}
+  .ghost{background:transparent;color:var(--mute);border:1px solid var(--line);padding:8px 12px;font-size:14px}
+  .err{color:var(--dt);font-size:14px;min-height:1em;margin:6px 0 0}
+  .totals{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center}
+  .tot b{display:block;font-size:22px}
+  .tot span{font-size:12px;color:var(--mute)}
+  .st{color:var(--st)}.ot{color:var(--ot)}.dt{color:var(--dt)}
+  .pay{margin-top:10px;text-align:center;font-size:15px;color:var(--mute)}
+  .week{border:1px solid var(--line);border-radius:12px;padding:0 12px 4px;margin-bottom:12px}
+  .weekhead{background:var(--bg);margin:0 -12px;padding:10px 12px;border-radius:12px;cursor:pointer;list-style:none;-webkit-user-select:none;user-select:none}
+  .weekhead::-webkit-details-marker{display:none}
+  .week[open] > .weekhead{border-radius:12px 12px 0 0;border-bottom:1px solid var(--line)}
+  .week:not([open]){padding-bottom:0}
+  .payday{font-weight:700;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+  .payday::after{content:"▸";color:var(--mute);font-size:14px;transition:transform .15s}
+  .week[open] .payday::after{transform:rotate(90deg)}
+  .expall{display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px}
+  .weekrange{font-size:13px;color:var(--mute);margin:2px 0 6px}
+  .weektot{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;font-size:13px}
+  .weektot b{font-size:15px}
+  .wpay{margin-left:auto;font-weight:600}
+  .day{border-top:1px solid var(--line);padding:10px 0}
+  .weekhead + .day{border-top:0}
+  .dayhead{display:flex;justify-content:space-between;font-weight:600}
+  .ent{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--mute);margin-top:4px}
+  .editbox{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:6px}
+  .editbox input{background:var(--card)}
+  .x{background:none;color:var(--mute);padding:2px 8px;font-size:18px}
+  .chips{font-size:13px;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
+  .rules{font-size:13px;color:var(--mute)}
+  .rules li{margin:2px 0}
+  .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+  .empty{color:var(--mute);font-size:14px;text-align:center;padding:10px}
+  .confirm{display:none;gap:8px;align-items:center;justify-content:flex-end;margin-top:8px;font-size:14px}
+  .confirm.show{display:flex}
+  .danger{background:var(--dt);color:#fff;padding:8px 12px;font-size:14px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Time Card Calculator</h1>
+  <p class="sub">Enter each shift's start and stop. Overnight shifts are handled automatically.</p>
+
+  <div class="card">
+    <div class="row row3">
+      <div><label for="d">Shift start date</label><input type="date" id="d"></div>
+      <div><label for="s">Start</label><input type="time" id="s" value="22:00"></div>
+      <div><label for="e">Stop</label><input type="time" id="e" value="06:00"></div>
+    </div>
+    <button class="primary" id="add">Add shift</button>
+    <p class="err" id="err"></p>
+  </div>
+
+  <div class="card">
+    <div class="totals">
+      <div class="tot"><b id="tAll">0.00</b><span>Total hrs</span></div>
+      <div class="tot st"><b id="tSt">0.00</b><span>Straight</span></div>
+      <div class="tot ot"><b id="tOt">0.00</b><span>Overtime</span></div>
+      <div class="tot dt"><b id="tDt">0.00</b><span>Double</span></div>
+    </div>
+    <div class="pay" id="pay"></div>
+  </div>
+
+  <div class="card">
+    <div class="expall"><button class="ghost" id="openAll">Expand all</button><button class="ghost" id="closeAll">Collapse all</button></div>
+    <div id="list"></div>
+    <div class="actions">
+      <button class="ghost" id="copy">Copy summary</button>
+      <button class="ghost" id="clear">Clear all</button>
+    </div>
+    <div class="confirm" id="confirm">Delete every shift?
+      <button class="ghost" id="no">Cancel</button>
+      <button class="danger" id="yes">Delete</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div><label for="rate">Hourly rate (optional)</label><input type="number" id="rate" min="0" step="0.01" placeholder="e.g. 25.00" inputmode="decimal"></div>
+      <div><label for="otAfter">Overtime after (hrs/day)</label><input type="number" id="otAfter" min="0" step="0.25" value="8" inputmode="decimal"></div>
+    </div>
+    <div class="actions" style="justify-content:flex-start;margin:0 0 10px">
+      <button class="ghost" id="bkCopy">Copy backup</button>
+      <button class="ghost" id="bkShow">Restore backup</button>
+    </div>
+    <div id="bkBox" style="display:none;margin-bottom:10px">
+      <label for="bkText">Paste backup here</label>
+      <textarea id="bkText" rows="3" style="width:100%;font:inherit;font-size:13px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)"></textarea>
+      <p class="err" id="bkErr"></p>
+      <div class="actions" style="margin-top:4px"><button class="ghost" id="bkCancel">Cancel</button><button class="danger" id="bkGo">Replace my shifts</button></div>
+    </div>
+    <ul class="rules">
+      <li><b class="st">Straight time</b>: first 8 hours worked in a day (normal shift 10pm–6am).</li>
+      <li><b class="ot">Overtime (1.5×)</b>: hours past 8 in a day, plus all of Saturday from 6am through the Saturday 10pm–6am night shift.</li>
+      <li><b class="dt">Double time (2×)</b>: Sunday 6am through Monday 10pm.</li>
+      <li>Weekend hours don't count toward the 8-hour overtime limit.</li>
+      <li>A shift belongs to the date it starts on.</li>
+      <li>Weeks run Monday–Sunday (by shift start). Each week is paid the Friday after it ends.</li>
+    </ul>
+  </div>
+</main>
+
+<script>
+const KEY = "timecard.v1";
+const $ = id => document.getElementById(id);
+let state = { shifts: [], rate: "", otAfter: 8 };
+
+function load(){ try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && Array.isArray(s.shifts)) state = Object.assign(state, s); }catch(e){} }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function toDate(dateStr, timeStr){ const [y,m,d]=dateStr.split("-").map(Number); const [h,mi]=timeStr.split(":").map(Number); return new Date(y,m-1,d,h,mi); }
+function fmtT(t){ let [h,m]=t.split(":").map(Number); const ap=h>=12?"pm":"am"; h=h%12||12; return h+(m?":"+String(m).padStart(2,"0"):"")+ap; }
+function fmtD(ds){ const [y,m,d]=ds.split("-").map(Number); return new Date(y,m-1,d).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}); }
+const h2 = n => (n/60).toFixed(2);
+
+// Weekend windows:
+//   Overtime:    Saturday 6:00am -> Sunday 6:00am (includes Sat 10pm-6am night shift)
+//   Double time: Sunday 6:00am  -> Monday 10:00pm
+function weekendRate(dt){
+  const day = dt.getDay(), mins = dt.getHours()*60 + dt.getMinutes();
+  if(day === 6) return mins >= 360 ? "ot" : null;   // Saturday from 6am = OT
+  if(day === 0) return mins < 360 ? "ot" : "dt";    // Sunday before 6am = OT, after = DT
+  if(day === 1) return mins < 1320 ? "dt" : null;   // Monday before 10pm = DT
+  return null;
+}
+
+function compute(){
+  const otLimit = Math.max(0, Number(state.otAfter) || 0) * 60;
+  const byDay = {};
+  state.shifts.forEach((s,i) => { (byDay[s.date] = byDay[s.date] || []).push({...s, idx:i}); });
+  const days = Object.keys(byDay).sort().map(date => {
+    const ents = byDay[date].sort((a,b)=>a.start.localeCompare(b.start));
+    let run = 0; const d = {date, ents:[], st:0, ot:0, dt:0};
+    ents.forEach(e => {
+      const a = toDate(e.date, e.start); let b = toDate(e.date, e.end);
+      if(b <= a) b = new Date(b.getTime() + 864e5);
+      const r = {...e, st:0, ot:0, dt:0, total:0};
+      for(let t = a.getTime(); t < b.getTime(); t += 60000){
+        const m = new Date(t);
+        const w = weekendRate(m);
+        if(w === "dt") r.dt++; else if(w === "ot") r.ot++; else { if(run >= otLimit) r.ot++; else r.st++; run++; }
+        r.total++;
+      }
+      d.st += r.st; d.ot += r.ot; d.dt += r.dt; d.ents.push(r);
+    });
+    d.total = d.st + d.ot + d.dt;
+    return d;
+  });
+  return days;
+}
+
+// Work week = Monday through Sunday (by shift start date). Payday = the Friday after the week ends.
+function ymd(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function weekStart(ds){ const d = toDate(ds,"00:00"); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return ymd(d); }
+function addDays(ds,n){ const d = toDate(ds,"00:00"); d.setDate(d.getDate()+n); return ymd(d); }
+function fmtLong(ds){ const [y,m,d]=ds.split("-").map(Number); return new Date(y,m-1,d).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric",year:"numeric"}); }
+function payOf(st,ot,dt){ const rate = Number(state.rate); return rate > 0 ? (st + ot*1.5 + dt*2)/60*rate : null; }
+
+function groupWeeks(days){
+  const wk = {};
+  days.forEach(d => { const k = weekStart(d.date); (wk[k] = wk[k] || {start:k, end:addDays(k,6), payday:addDays(k,11), days:[], st:0, ot:0, dt:0}).days.push(d); });
+  return Object.values(wk).sort((a,b)=>a.start.localeCompare(b.start)).map(w => {
+    w.days.forEach(d => { w.st+=d.st; w.ot+=d.ot; w.dt+=d.dt; }); w.total = w.st+w.ot+w.dt; return w;
+  });
+}
+
+let editing = null;
+function editForm(e){
+  const f = document.createElement("div"); f.className = "editbox";
+  f.innerHTML = `<div class="row row3">
+      <div><label>Date</label><input type="date" class="ed-d" value="${e.date}"></div>
+      <div><label>Start</label><input type="time" class="ed-s" value="${e.start}"></div>
+      <div><label>Stop</label><input type="time" class="ed-e" value="${e.end}"></div>
+    </div>
+    <p class="err ed-err"></p>
+    <div class="actions" style="margin-top:4px"><button class="ghost ed-cancel">Cancel</button><button class="primary ed-save" style="width:auto">Save</button></div>`;
+  f.querySelector(".ed-cancel").onclick = () => { editing = null; render(); };
+  f.querySelector(".ed-save").onclick = () => {
+    const date=f.querySelector(".ed-d").value, start=f.querySelector(".ed-s").value, end=f.querySelector(".ed-e").value;
+    if(!date || !start || !end){ f.querySelector(".ed-err").textContent = "Fill in the date, start and stop."; return; }
+    if(start === end){ f.querySelector(".ed-err").textContent = "Start and stop can't be the same time."; return; }
+    state.shifts[e.idx] = {date, start, end}; editing = null; sortShifts(); save(); render();
+  };
+  return f;
+}
+function sortShifts(){ state.shifts.sort((a,b)=> (a.date+a.start).localeCompare(b.date+b.start)); }
+
+function render(){
+  const days = compute();
+  const weeks = groupWeeks(days);
+  let st=0, ot=0, dt=0;
+  const list = $("list"); list.innerHTML = "";
+  if(!days.length) list.innerHTML = '<div class="empty">No shifts yet. Add one above.</div>';
+  state.open = state.open || {};
+  const newest = weeks.length ? weeks[weeks.length-1].start : null;
+  weeks.slice().reverse().forEach(w => {
+    const wk = document.createElement("details"); wk.className = "week";
+    wk.open = (w.start in state.open) ? state.open[w.start] : (w.start === newest);
+    wk.addEventListener("toggle", () => { state.open[w.start] = wk.open; save(); });
+    const p = payOf(w.st,w.ot,w.dt);
+    wk.innerHTML = `<summary class="weekhead">
+        <div class="payday">💵 Paycheck: ${fmtLong(w.payday)}</div>
+        <div class="weekrange">Week of ${fmtD(w.start)} – ${fmtD(w.end)}</div>
+        <div class="weektot"><b>${h2(w.total)} hrs</b>
+          <span class="st">ST ${h2(w.st)}</span><span class="ot">OT ${h2(w.ot)}</span><span class="dt">DT ${h2(w.dt)}</span>
+          ${p!==null?`<span class="wpay">$${p.toFixed(2)}</span>`:""}</div>
+      </summary>`;
+    list.appendChild(wk);
+  w.days.forEach(d => {   // days in calendar order: Mon -> Sun
+    st+=d.st; ot+=d.ot; dt+=d.dt;
+    const el = document.createElement("div"); el.className = "day";
+    el.innerHTML = `<div class="dayhead"><span>${fmtD(d.date)}</span><span>${h2(d.total)} hrs</span></div>`;
+    d.ents.forEach(e => {
+      if(editing === e.idx){ el.appendChild(editForm(e)); return; }
+      const row = document.createElement("div"); row.className = "ent";
+      row.innerHTML = `<span>${fmtT(e.start)} – ${fmtT(e.end)} · ${h2(e.total)} hrs</span>`;
+      const btns = document.createElement("span");
+      const ed = document.createElement("button"); ed.className="x"; ed.textContent="✎"; ed.setAttribute("aria-label","Edit shift");
+      ed.onclick = () => { editing = e.idx; render(); };
+      const x = document.createElement("button"); x.className="x"; x.textContent="×"; x.setAttribute("aria-label","Delete shift");
+      x.onclick = () => { state.shifts.splice(e.idx,1); editing = null; save(); render(); };
+      btns.append(ed, x); row.appendChild(btns); el.appendChild(row);
+    });
+    const chips = document.createElement("div"); chips.className = "chips";
+    chips.innerHTML = `<span class="st">Straight ${h2(d.st)}</span>` + (d.ot?`<span class="ot">OT ${h2(d.ot)}</span>`:"") + (d.dt?`<span class="dt">Double ${h2(d.dt)}</span>`:"");
+    el.appendChild(chips); wk.appendChild(el);
+  });
+  });
+  $("tAll").textContent = h2(st+ot+dt); $("tSt").textContent = h2(st); $("tOt").textContent = h2(ot); $("tDt").textContent = h2(dt);
+  const tp = payOf(st,ot,dt);
+  $("pay").textContent = tp !== null ? `Estimated gross pay (all weeks): $${tp.toFixed(2)}` : "";
+  return {days, weeks, st, ot, dt};
+}
+
+$("add").onclick = () => {
+  const date=$("d").value, start=$("s").value, end=$("e").value;
+  if(!date || !start || !end){ $("err").textContent = "Fill in the date, start and stop."; return; }
+  if(start === end){ $("err").textContent = "Start and stop can't be the same time."; return; }
+  $("err").textContent = "";
+  state.shifts.push({date, start, end}); editing = null; sortShifts(); save(); render();
+  const n = toDate(date,"00:00"); n.setDate(n.getDate()+1);
+  $("d").value = n.getFullYear()+"-"+String(n.getMonth()+1).padStart(2,"0")+"-"+String(n.getDate()).padStart(2,"0");
+};
+$("rate").oninput = e => { state.rate = e.target.value; save(); render(); };
+$("otAfter").oninput = e => { state.otAfter = e.target.value; save(); render(); };
+function setAll(v){ state.open = state.open || {}; groupWeeks(compute()).forEach(w => state.open[w.start] = v); save(); render(); }
+$("openAll").onclick = () => setAll(true);
+$("closeAll").onclick = () => setAll(false);
+$("clear").onclick =() => $("confirm").classList.add("show");
+$("no").onclick = () => $("confirm").classList.remove("show");
+$("yes").onclick = () => { state.shifts = []; save(); render(); $("confirm").classList.remove("show"); };
+$("copy").onclick = async () => {
+  const r = render();
+  let txt = r.weeks.map(w => {
+    const p = payOf(w.st,w.ot,w.dt);
+    return `=== Paycheck ${fmtLong(w.payday)} — week of ${fmtD(w.start)} – ${fmtD(w.end)} ===\n` +
+      w.days.map(d => `${fmtD(d.date)}: ${d.ents.map(e=>fmtT(e.start)+"-"+fmtT(e.end)).join(", ")} = ${h2(d.total)} hrs (ST ${h2(d.st)}, OT ${h2(d.ot)}, DT ${h2(d.dt)})`).join("\n") +
+      `\nWeek total: ${h2(w.total)} hrs — ST ${h2(w.st)}, OT ${h2(w.ot)}, DT ${h2(w.dt)}` + (p!==null?` — $${p.toFixed(2)}`:"");
+  }).join("\n\n");
+  txt += `\n\nALL WEEKS TOTAL: ${h2(r.st+r.ot+r.dt)} hrs — Straight ${h2(r.st)}, Overtime ${h2(r.ot)}, Double ${h2(r.dt)}`;
+  try{ await navigator.clipboard.writeText(txt); $("copy").textContent = "Copied!"; }catch(e){ $("copy").textContent = "Copy not allowed"; }
+  setTimeout(()=>$("copy").textContent="Copy summary", 1500);
+};
+
+$("bkCopy").onclick = async () => {
+  const code = "TC1:" + btoa(unescape(encodeURIComponent(JSON.stringify({shifts:state.shifts, rate:state.rate, otAfter:state.otAfter}))));
+  try{ await navigator.clipboard.writeText(code); $("bkCopy").textContent = "Backup copied!"; }
+  catch(e){ $("bkBox").style.display="block"; $("bkText").value = code; $("bkErr").textContent = "Copy blocked — select the text above and copy it manually."; }
+  setTimeout(()=>$("bkCopy").textContent="Copy backup", 1500);
+};
+$("bkShow").onclick = () => { $("bkBox").style.display = "block"; $("bkErr").textContent = ""; $("bkText").value = ""; $("bkText").focus(); };
+$("bkCancel").onclick = () => { $("bkBox").style.display = "none"; };
+$("bkGo").onclick = () => {
+  try{
+    const raw = $("bkText").value.trim();
+    if(!raw.startsWith("TC1:")) throw 0;
+    const data = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4)))));
+    if(!Array.isArray(data.shifts)) throw 0;
+    state.shifts = data.shifts.filter(s => s && s.date && s.start && s.end);
+    if(data.rate !== undefined) state.rate = data.rate;
+    if(data.otAfter !== undefined) state.otAfter = data.otAfter;
+    sortShifts(); save();
+    $("rate").value = state.rate || ""; $("otAfter").value = state.otAfter ?? 8;
+    $("bkBox").style.display = "none"; render();
+  }catch(e){ $("bkErr").textContent = "That doesn't look like a valid backup code."; }
+};
+
+load();
+sortShifts();
+$("d").value = todayStr();
+$("rate").value = state.rate || "";
+$("otAfter").value = state.otAfter ?? 8;
+render();
+
+if("serviceWorker" in navigator){ try{ navigator.serviceWorker.register("sw.js"); }catch(e){} }
+// Ask the browser to keep this app's data even when storage is low
+try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
+</script>
+</body>
+</html>
